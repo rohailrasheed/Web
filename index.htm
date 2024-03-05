@@ -14,7 +14,8 @@
 
         .dashboard {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
+            justify-content: space-around;
             align-items: center;
             padding: 20px;
             background-color: #fff;
@@ -30,12 +31,11 @@
         }
 
         .dashboard .form-container {
-            width: 100%;
+            width: 400px;
             padding: 20px;
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
         }
 
         .dashboard form {
@@ -103,14 +103,13 @@
 
         .dashboard .record-actions {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
             margin-top: 20px;
         }
 
         .dashboard .record-actions button {
             background-color: #f44336;
-            margin-bottom: 10px;
         }
 
         .dashboard .record-actions button.edit {
