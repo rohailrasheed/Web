@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .dashboard {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            margin: 20px;
+        }
+
+        .dashboard h1 {
+            color: #333;
+            text-align: center;
+            width: 100%;
+        }
+
+        .dashboard .form-container {
+            width: 400px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .dashboard label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .dashboard input,
+        .dashboard select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .dashboard button {
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+        .dashboard button:hover {
+            background-color: #45a049;
+        }
+
+        .dashboard .table-container {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .dashboard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .dashboard th, .dashboard td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .dashboard th {
+            background-color: #4caf50;
+            color: #fff;
+        }
+
+        .dashboard .record-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .dashboard .record-actions button {
+            background-color: #f44336;
+        }
+
+        .dashboard .record-actions button.edit {
+            background-color: #2196F3;
+        }
+
+        .dashboard .record-actions button.delete:hover, .dashboard .record-actions button.edit:hover {
+            background-color: #d32f2f;
+        }
+
+        .dashboard .notification {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f44336;
+            color: #fff;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .dashboard .fixed-cartons {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #3498db;
+            color: #fff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h1>Admin Dashboard</h1>
+
+        <div class="form-container">
+            <form id="recordForm" onsubmit="event.preventDefault(); addRecord();">
+                <label for="customerId">Customer ID:</label>
+                <input type="text" id="customerId" name="customerId" required>
+
+                <label for="customerName">Customer Name:</label>
+                <input type="text" id="customerName" name="customerName" required>
+
+                <label for="orderQuantity">Carton Order Quantity:</label>
+                <input type="number" id="orderQuantity" name="orderQuantity" required>
+
+                <label for="cartonType">Carton Type:</label>
+                <select id="cartonType" name="cartonType" required>
+                    <option value="craft">Craft</option>
+                    <option value="balach">Balach</option>
+                </select>
+
+                <button type="submit">Add Record</button>
+            </form>
+        </div>
+
+        <div class="table-container">
+            <table id="recordTable">
+                <thead>
+                    <tr>
+                        <th>Customer ID</th>
+                        <th>Customer Name</th>
+                        <th>Order Quantity</th>
+                        <th>Carton Type</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Records will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="record-actions">
+            <button id="deleteButton" onclick="deleteSelected()">Delete Selected</button>
+            <button id="updateButton" class="edit" onclick="updateSelected()">Update Selected</button>
+        </div>
+
+        <div id="notification" class="notification"></div>
+        <div id="fixedCartons" class="fixed-cartons">Total Fixed Cartons (Craft): 1000 | Total Fixed Cartons (Balach): 1000</div>
+    </div>
+
+    <script>
+        var totalCraftInventory = 1000;
+        var totalBalachInventory = 1000;
+
+        // Track previous order quantity for each carton type
+        var previousQuantity = {
+            craft: 0,
+            balach: 0
+        };
+
+        function addRecord() {
+            var customerId = document.getElementById('customerId').value;
+            var customerName = document.getElementById('customerName').value;
+            var orderQuantity = parseInt(document.getElementById('orderQuantity').value);
+            var cartonType = document.getElementById('cartonType').value;
+
+            // Check if the order quantity exceeds the total fixed inventory
+            if (orderQuantity > getTotalInventory(cartonType)) {
+                showNotification("Order quantity exceeds total inventory!");
+                return;
+            }
+
+            var table = document.getElementById('recordTable').getElementsByTagName('tbody')[0];
+            var newRow = table.insertRow(table.rows.length);
+
+            var cell1 = newRow.insertCell(0);
+            var cell2 = newRow.insertCell(1);
+            var cell3 = newRow.insertCell(2);
+            var cell4 = newRow.insertCell(3);
+            var cell5 = newRow.insertCell(4);
+
+            cell1.innerHTML = customerId;
+            cell2.innerHTML = customerName;
+            cell3.innerHTML = orderQuantity;
+            cell4.innerHTML = cartonType;
+            cell5.innerHTML = '<input type="checkbox" class="record-checkbox">';
+
+            // Subtract from the total inventory for the added record
+            updateTotalInventory(cartonType, orderQuantity);
+
+            // Update the previous quantity for the carton type
+            previousQuantity[cartonType] = orderQuantity;
+
+            // Clear the form fields after adding a record
+            document.getElementById('recordForm').reset();
+
+            // Hide notification if it was previously shown
+            hideNotification();
+        }
+
+        function deleteSelected() {
+            var table = document.getElementById('recordTable');
+            var checkboxes = table.getElementsByClassName('record-checkbox');
+
+            for (var i = checkboxes.length - 1; i >= 0; i--) {
+                if (checkboxes[i].checked) {
+                    // Retrieve the carton type and order quantity for the selected record
+                    var cartonType = table.rows[i + 1].cells[3].innerHTML;
+                    var orderQuantity = parseInt(table.rows[i + 1].cells[2].innerHTML);
+
+                    // Add the order quantity back to the total inventory
+                    updateTotalInventory(cartonType, -orderQuantity);
+
+                    // Delete the selected row
+                    table.deleteRow(i + 1);
+                }
+            }
+        }
+
+        function updateSelected() {
+            var table = document.getElementById('recordTable');
+            var checkboxes = table.getElementsByClassName('record-checkbox');
+
+            for (var i = checkboxes.length - 1; i >= 0; i--) {
+                if (checkboxes[i].checked) {
+                    var orderQuantity = parseInt(prompt("Update Order Quantity:", table.rows[i + 1].cells[2].innerHTML));
+                    var cartonType = table.rows[i + 1].cells[3].innerHTML;
+
+                    // Check if the updated order quantity exceeds the total fixed inventory
+                    if (orderQuantity > getTotalInventory(cartonType)) {
+                        showNotification("Order quantity exceeds total inventory!");
+                        return;
+                    }
+
+                    // Calculate the difference in order quantity for updating total inventory
+                    var difference = orderQuantity - parseInt(table.rows[i + 1].cells[2].innerHTML);
+
+                    // Update the total inventory based on the carton type
+                    updateTotalInventory(cartonType, difference);
+
+                    // Update the previous quantity for the carton type
+                    previousQuantity[cartonType] = orderQuantity;
+
+                    table.rows[i + 1].cells[2].innerHTML = orderQuantity;
+                }
+            }
+        }
+
+        // Function to get the total fixed inventory for a given carton type
+        function getTotalInventory(cartonType) {
+            return cartonType === 'craft' ? totalCraftInventory : totalBalachInventory;
+        }
+
+        // Function to update the total inventory based on the carton type and the difference in order quantity
+        function updateTotalInventory(cartonType, difference) {
+            if (cartonType === 'craft') {
+                totalCraftInventory -= difference;
+            } else if (cartonType === 'balach') {
+                totalBalachInventory -= difference;
+            }
+
+            // Update the total inventory display
+            document.getElementById('fixedCartons').innerHTML = "Total Fixed Cartons (Craft): " + totalCraftInventory + " | Total Fixed Cartons (Balach): " + totalBalachInventory;
+        }
+
+        function showNotification(message) {
+            var notification = document.getElementById('notification');
+            notification.innerHTML = message;
+            notification.style.display = 'block';
+        }
+
+        function hideNotification() {
+            var notification = document.getElementById('notification');
+            notification.style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
